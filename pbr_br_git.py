@@ -32,7 +32,9 @@ subprocess.run(
 
 # Общий раздел
 SESSION = requests.Session()
+
 id_message = str(int(datetime.datetime.now().timestamp()))
+
 
 # Настройки для логера
 if platform == "linux" or platform == "linux2":
@@ -65,12 +67,11 @@ br_settings = pd.DataFrame(settings["br"])
 gtp_settings = pd.DataFrame(settings["gtp"])
 
 
-# Функция отправки уведомлений в telegram на любое количество каналов 
+# Функция отправки уведомлений в telegram на любое количество каналов
 # (указать данные в yaml файле настроек)
 def telegram(i, text):
-    """Функция отправки уведомлений в telegram на любое количество каналов
-    (указать данные в yaml файле настроек)
-    """
+    # Функция отправки уведомлений в telegram на любое количество каналов
+    # (указать данные в yaml файле настроек)
     try:
         msg = urllib.parse.quote(str(text))
         bot_token = str(telegram_settings.bot_token[i])
@@ -180,10 +181,44 @@ CsvTable.encoding = "windows-1251"
 
 DataFrame = pd.DataFrame()
 DataFrame = pd.read_table(StringIO(CsvTable.text), delimiter=";").fillna(0)
-DataFrame["dt"] = pd.to_datetime(
-    DataFrame["SESSION_DATE"], dayfirst=True, utc=False
-) + pd.to_timedelta(DataFrame["SESSION_INTERVAL"], unit="h")
-DataFrame.replace(",", ".", inplace=True)
+DataFrame.insert(
+    2,
+    "dt",
+    pd.to_datetime(DataFrame["SESSION_DATE"], dayfirst=True, utc=False)
+    + pd.to_timedelta(DataFrame["SESSION_INTERVAL"], unit="h"),
+)
+# print(DataFrame)
+
+col_to_float = [
+    "TG",
+    "PminPDG",
+    "PmaxPDG",
+    "PVsvgo",
+    "PminVsvgo",
+    "PmaxVsvgo",
+    "PminBR",
+    "PmaxBR",
+    "IBR",
+    "CbUP",
+    "CbDown",
+    "CRSV",
+    "TotalBR",
+    "EVR",
+    "OCPU",
+    "OCPS",
+    "Pmin",
+    "Pmax",
+]
+for col in col_to_float:
+    DataFrame[col] = (
+        DataFrame[col].replace(",", ".", regex=True).astype("float")
+    )
+
+col_to_int = ["SESSION_NUMBER", "SESSION_INTERVAL"]
+for col in col_to_int:
+    DataFrame[col] = DataFrame[col].replace(",", ".", regex=True).astype("int")
+
+print(DataFrame)
 
 load_data_to_db(
     "pbr_br",
@@ -209,3 +244,4 @@ subprocess.run(
     " -k pbr_br_download_to_base -o 'Ok'",
     shell=True,
 )
+
